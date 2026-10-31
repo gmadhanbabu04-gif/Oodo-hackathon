@@ -11,6 +11,7 @@ import DiscountModal from './components/DiscountModal';
 import StaffModal from './components/StaffModal';
 import AuthModal from './components/AuthModal';
 import CustomerModal from './components/CustomerModal';
+import CheckoutModal from './components/CheckoutModal';
 import Toast from './components/Toast';
 
 import DashboardView from './views/DashboardView';
@@ -44,6 +45,8 @@ export default function App() {
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [selectedCheckoutPlan, setSelectedCheckoutPlan] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [toast, setToast] = useState({ message: null, type: 'success' });
 
@@ -83,6 +86,11 @@ export default function App() {
 
   function handleApplyTemplate(tmpl) {
     setSubscriptionModalOpen(true);
+  }
+
+  function handleOpenCheckout(plan = null) {
+    setSelectedCheckoutPlan(plan);
+    setCheckoutModalOpen(true);
   }
 
   return (
@@ -165,6 +173,7 @@ export default function App() {
             <PlansView
               key={refreshKey}
               onOpenNewPlan={() => setPlanModalOpen(true)}
+              onOpenCheckout={handleOpenCheckout}
               currentUser={currentUser}
             />
           )}
@@ -199,6 +208,7 @@ export default function App() {
               onSelectInvoice={setSelectedInvoice}
               onOpenPayment={setPaymentInvoice}
               onOpenNewSubscription={() => setSubscriptionModalOpen(true)}
+              onOpenCheckout={handleOpenCheckout}
               setView={setCurrentView}
             />
           )}
@@ -299,6 +309,17 @@ export default function App() {
           triggerRefresh();
           showToast('New customer account created successfully!');
         }}
+      />
+
+      <CheckoutModal
+        isOpen={checkoutModalOpen}
+        onClose={() => setCheckoutModalOpen(false)}
+        initialPlan={selectedCheckoutPlan}
+        onPurchaseComplete={(res) => {
+          triggerRefresh();
+          showToast(res.message, 'success');
+        }}
+        currentUser={currentUser}
       />
 
       <AuthModal

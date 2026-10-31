@@ -638,6 +638,168 @@ app.post('/api/subscriptions', authenticateToken, (req, res) => {
   res.status(201).json(newSub);
 });
 
+// Direct Customer Purchase / Self-Service Checkout (SubscriptIQ Buy Flow)
+app.post('/api/subscriptions/checkout', authenticateToken, (req, res) => {
+  try {
+    const {
+      planId,
+      productId,
+      variant,
+      variantPriceDelta = 0,
+      quantity = 1,
+      discountCode,
+      paymentMethod = 'credit_card',
+      billingInterval
+    } = req.body;
+
+    const customerId = req.user.id;
+    const customer = db.getById('users', customerId);
+    const plan = db.getById('plans', planId);
+
+    if (!customer) return res.status(404).json({ error: 'Customer account not found' });
+    if (!plan) return res.status(404).json({ error: 'Selected subscription plan not found' });
+
+    let product = null;
+    let unitPrice = Number(plan.cost || 0);
+
+    if (productId) {
+      product = db.getById('products', productId);
+      if (product) {
+        unitPrice = Number(product.salesPrice) + Number(variantPriceDelta || 0);
+      }
+    }
+
+    const qty = Math.max(Number(plan.minQuantity || 1), Number(quantity || 1));
+    const subtotal = Math.round(unitPrice * qty * 100) / 100;
+
+    // Check discount code if provided
+    let discountTotal = 0;
+    let discountRule = null;
+    let discountNote = null;
+
+    if (discountCode) {
+      const codeClean = discountCode.toUpperCase().trim();
+      discountRule = db.findOne('discountRules', d => d.code === codeClean && d.isActive);
+      if (discountRule) {
+        if (discountRule.type === 'percentage') {
+          discountTotal = Math.round((subtotal * discountRule.value) / 100 * 100) / 100;
+        } else {
+          discountTotal = Math.min(discountRule.value, subtotal);
+        }
+        discountNote = `${discountRule.name} (${discountRule.code}): -$${discountTotal}`;
+        // Increment usage count
+        db.update('discountRules', discountRule.id, { timesUsed: (discountRule.timesUsed || 0) + 1 });
+      }
+    }
+
+    const netSubtotal = Math.max(0, subtotal - discountTotal);
+    const taxRate = 10.0; // standard default
+    const taxTotal = Math.round((netSubtotal * (taxRate / 100)) * 100) / 100;
+    const totalAmount = Math.round((netSubtotal + taxTotal) * 100) / 100;
+
+    const startDate = new Date().toISOString().split('T')[0];
+    const { advanceBillingDate } = require('./billingEngine');
+    const nextBillingDate = advanceBillingDate(startDate, plan.billingCycle || 'monthly');
+
+    // 1. Create Active Subscription
+    const subNumber = db.getNextNumber('subscription');
+    const lineItem = {
+      id: 'line-' + Date.now(),
+      productId: product ? product.id : 'plan-base',
+      productName: product ? product.name : plan.name,
+      variant: variant || null,
+      variantPriceDelta: Number(variantPriceDelta || 0),
+      quantity: qty,
+      unitPrice,
+      amount: subtotal
+    };
+
+    const newSub = db.create('subscriptions', {
+      subscriptionNumber: subNumber,
+      customerId: customer.id,
+      customerName: customer.companyName || customer.name,
+      customerEmail: customer.email,
+      planId: plan.id,
+      planName: plan.name,
+      status: 'active', // Direct purchase activates subscription immediately!
+      startDate,
+      nextBillingDate,
+      paymentTerms: 'immediate',
+      autoCloseOnEnd: plan.autoCloseOnEnd,
+      canCloseEarly: plan.canCloseEarly,
+      canPause: plan.canPause,
+      canRenew: plan.canRenew,
+      taxRate,
+      discountRuleId: discountRule ? discountRule.id : null,
+      lines: [lineItem],
+      notes: `Direct purchase via online checkout on ${startDate}`
+    });
+
+    // 2. Automatically generate the initial Invoice in Paid status
+    const invNumber = db.getNextNumber('invoice');
+    const newInvoice = db.create('invoices', {
+      invoiceNumber: invNumber,
+      subscriptionId: newSub.id,
+      subscriptionNumber: newSub.subscriptionNumber,
+      customerId: customer.id,
+      customerName: customer.companyName || customer.name,
+      customerEmail: customer.email,
+      invoiceDate: startDate,
+      dueDate: startDate,
+      billingPeriodStart: startDate,
+      billingPeriodEnd: nextBillingDate,
+      status: 'paid', // Initial purchase paid at checkout
+      lines: [lineItem],
+      subtotal,
+      discountTotal,
+      discountAppliedNote: discountNote,
+      taxRate,
+      taxTotal,
+      totalAmount,
+      paidAmount: totalAmount,
+      balanceDue: 0,
+      notes: `Instant checkout activation receipt for ${plan.name}`
+    });
+
+    // 3. Record Payment Transaction
+    const payNumber = db.getNextNumber('payment');
+    const payment = db.create('payments', {
+      paymentNumber: payNumber,
+      invoiceId: newInvoice.id,
+      invoiceNumber: newInvoice.invoiceNumber,
+      customerId: customer.id,
+      customerName: customer.companyName || customer.name,
+      amount: totalAmount,
+      paymentDate: startDate,
+      paymentMethod,
+      referenceNote: `Stripe / Card Auth #AUTH-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      notes: 'Initial subscription payment settled online'
+    });
+
+    db.update('subscriptions', newSub.id, {
+      lastInvoiceId: newInvoice.id,
+      lastBilledDate: startDate
+    });
+
+    db.logAudit('CUSTOMER_PURCHASE_CHECKOUT', customer.name, {
+      subscriptionNumber: newSub.subscriptionNumber,
+      invoiceNumber: newInvoice.invoiceNumber,
+      totalAmount,
+      paymentMethod
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Congratulations! Your subscription to ${plan.name} is now active.`,
+      subscription: newSub,
+      invoice: newInvoice,
+      payment
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Update Subscription Status Lifecycle:
 // Draft -> Quotation -> Confirmed -> Active -> Closed
 app.post('/api/subscriptions/:id/status', authenticateToken, (req, res) => {

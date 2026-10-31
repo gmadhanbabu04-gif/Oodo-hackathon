@@ -158,6 +158,10 @@ export const api = {
   }),
   togglePauseSubscription: (id) => request(`/subscriptions/${id}/pause-resume`, { method: 'POST' }),
   closeEarlySubscription: (id) => request(`/subscriptions/${id}/close-early`, { method: 'POST' }),
+  checkoutSubscription: (checkoutData) => request('/subscriptions/checkout', {
+    method: 'POST',
+    body: JSON.stringify(checkoutData)
+  }),
 
   // Billing & Invoices
   runBilling: (targetDate) => request('/billing/run', {

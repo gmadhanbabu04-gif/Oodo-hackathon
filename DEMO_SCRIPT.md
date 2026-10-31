@@ -84,16 +84,25 @@
 
 ---
 
-#### [5:15 - 5:45] Customer Self-Service Portal & Conclusion
+#### [5:15 - 5:45] Customer Self-Service Portal & Live "Buy Now" Checkout
 - **What to show on screen**:
   1. In the top navigation bar, click the **"Customer Portal"** simulator button.
-  2. Show how the view instantly transforms into John Miller's customer portal (only his subscriptions and invoices are visible).
+  2. Click the gold **"Buy / Subscribe Online"** button (or open Plans and click **"Subscribe Now"**).
+  3. Show the interactive checkout modal:
+     - Select Plan (e.g. Growth Monthly).
+     - Select **Odoo Powered Edition (+$560)**.
+     - Apply coupon `GROWTH20` (show the price reduce immediately!).
+     - Show the tax calculation (10% VAT).
+     - Click **"Pay & Activate Subscription"**.
+  4. Notice the instant toast notification, new active subscription, and paid invoice receipt appear in the customer's portal immediately!
 - **What to speak**:
-  > *"Finally, we built a dedicated Customer Portal. Customers can inspect their licenses, download past receipts, and settle dues online without ever having to email anyone.*
+  > *"Finally, we built a complete end-to-end self-service Buy flow. Customers don't need to email sales to purchase software.
   > 
-  > *To test, our top bar lets evaluators switch instantly between Admin, Staff, and Customer perspectives with full role-based access control.*
+  > *From their portal, a customer clicks 'Buy Online', selects their plan and product variant—such as the Odoo-powered edition—enters a discount code like `GROWTH20`, and completes simulated payment checkout.
   > 
-  > *Thank you! Brightloop Software now has a rock-solid, scalable digital backbone built for recurring revenue growth."*
+  > *In a single atomic transaction, the subscription is activated, an official invoice is generated in Paid status, and a payment receipt is stored.
+  > 
+  > *Thank you! SubscriptIQ connects the complete subscription lifecycle in one centralized platform."*
 
 ---
 

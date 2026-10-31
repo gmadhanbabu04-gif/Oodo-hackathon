@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CalendarCheck, Check, X, Shield, Clock } from 'lucide-react';
+import { Plus, CalendarCheck, Check, X, Shield, Clock, ShoppingCart, Sparkles } from 'lucide-react';
 import { api } from '../api';
 import StatusBadge from '../components/StatusBadge';
 
-export default function PlansView({ onOpenNewPlan, currentUser }) {
+export default function PlansView({ onOpenNewPlan, onOpenCheckout, currentUser }) {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -111,9 +111,18 @@ export default function PlansView({ onOpenNewPlan, currentUser }) {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex justify-between">
-                <span>Valid: {p.startDate}</span>
-                <span>{p.endDate ? `to ${p.endDate}` : 'Ongoing'}</span>
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400">
+                  {p.endDate ? `Ends ${p.endDate}` : 'Ongoing plan'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenCheckout && onOpenCheckout(p)}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-[#714B67] hover:bg-[#5B3952] shadow-sm transition-all"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  <span>Subscribe Now</span>
+                </button>
               </div>
             </div>
           ))}

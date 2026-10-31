@@ -748,7 +748,7 @@
       "dueDate": "2026-10-31",
       "billingPeriodStart": "2026-10-01",
       "billingPeriodEnd": "2026-11-01",
-      "status": "confirmed",
+      "status": "paid",
       "lines": [
         {
           "productId": "46875ca4-9a1a-4d07-a356-079849aed449",
@@ -773,9 +773,10 @@
       "taxRate": 10,
       "taxTotal": 700.5,
       "totalAmount": 7705.5,
-      "paidAmount": 0,
-      "balanceDue": 7705.5,
-      "notes": "Automated recurring billing for Growth Monthly Plan (2026-10-01 to 2026-11-01)"
+      "paidAmount": 7705.5,
+      "balanceDue": 0,
+      "notes": "Automated recurring billing for Growth Monthly Plan (2026-10-01 to 2026-11-01)",
+      "updatedAt": "2026-10-31T09:04:55.777Z"
     }
   ],
   "payments": [
@@ -806,6 +807,20 @@
       "paymentMethod": "bank_transfer",
       "referenceNote": "Wire Ref #ACME-WIRE-99218",
       "notes": "Partial advance retainer payment"
+    },
+    {
+      "id": "5a0d9bc0-4048-49d1-a6c4-5029df976c3f",
+      "createdAt": "2026-10-31T09:04:55.774Z",
+      "paymentNumber": "PAY-2026-0003",
+      "invoiceId": "06f9fea2-069e-4290-8e9f-38028e5ec7df",
+      "invoiceNumber": "INV-2026-0003",
+      "customerId": "3fed021b-af25-4c2b-bc19-52b15db6d106",
+      "customerName": "John Miller",
+      "amount": 7705.5,
+      "paymentDate": "2026-10-31",
+      "paymentMethod": "credit_card",
+      "referenceNote": "Customer Portal Online Checkout",
+      "notes": ""
     }
   ],
   "auditLogs": [

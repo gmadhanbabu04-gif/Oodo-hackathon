@@ -17,6 +17,7 @@ export default function CustomerPortalView({
   onSelectInvoice, 
   onOpenPayment, 
   onOpenNewSubscription,
+  onOpenCheckout,
   setView 
 }) {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -61,13 +62,21 @@ export default function CustomerPortalView({
           </p>
         </div>
 
-        <button
-          onClick={onOpenNewSubscription}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-[#714B67] hover:bg-slate-50 shadow-md transition-all"
-        >
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>Subscribe to New Add-on / Plan</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => onOpenCheckout && onOpenCheckout()}
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-extrabold bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-md transition-all active:scale-95"
+          >
+            <Sparkles className="w-4 h-4 fill-current text-slate-950" />
+            <span>Buy / Subscribe Online</span>
+          </button>
+          <button
+            onClick={onOpenNewSubscription}
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm transition-all"
+          >
+            <span>Request Quote</span>
+          </button>
+        </div>
       </div>
 
       {/* Account Overview Cards */}
