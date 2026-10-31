@@ -1,6 +1,12 @@
 # 🚀 SubscriptIQ — Smart Subscriptions. Automated Billing. Clear Revenue.
 > **Odoo Hackathon Solution** | Enterprise Subscription Management & Intelligent Recurring Billing System for Brightloop Software
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/gmadhanbabu04-gif/Oodo-hackathon)
+
+### 🌐 Live Cloud Deployment (Render Blueprint)
+- **Live Demo Web App URL**: [https://subscriptiq-billing.onrender.com](https://subscriptiq-billing.onrender.com) *(or click the "Deploy to Render" button above to launch your own zero-config cloud instance!)*
+- **Infrastructure Blueprint**: Configured in [`render.yaml`](./render.yaml) for automated fullstack deployment (React Frontend + Express API + File Database).
+
 ---
 
 ## 🌟 1. Executive Summary & Problem Context
