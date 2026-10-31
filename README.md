@@ -2,6 +2,8 @@
 
 Subscription Management and Recurring Billing System built for Brightloop Software (Odoo Hackathon).
 
+**Live Demo URL**: [https://subscriptiq-billing.onrender.com](https://subscriptiq-billing.onrender.com)
+
 ## Tech Stack
 - Frontend: React 18, Vite, Tailwind CSS
 - Backend: Node.js, Express.js
