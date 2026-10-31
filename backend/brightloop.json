@@ -486,6 +486,51 @@
         }
       ],
       "notes": "Paused by customer during quarterly server migration"
+    },
+    {
+      "id": "d1387139-2b15-447a-9b71-f67632d5cb5f",
+      "createdAt": "2026-10-31T08:39:50.459Z",
+      "subscriptionNumber": "SUB-2026-0006",
+      "customerId": "7ed98d07-2c0d-42ea-bc88-1f6a62904ac9",
+      "customerName": "Acme Global Logistics",
+      "customerEmail": "finance@acmecorp.com",
+      "planId": "f0dd23a2-edfe-4055-90fa-977b4d17c50f",
+      "planName": "Growth Monthly Plan",
+      "status": "quotation",
+      "quotationTemplateId": "2ceda68c-521d-4fd1-84c2-27216e27d220",
+      "startDate": "2026-10-31",
+      "expiryDate": "2026-11-15",
+      "nextBillingDate": "2026-10-31",
+      "paymentTerms": "immediate",
+      "autoCloseOnEnd": false,
+      "canCloseEarly": true,
+      "canPause": true,
+      "canRenew": true,
+      "taxRate": 10,
+      "discountRuleId": null,
+      "lines": [
+        {
+          "id": "line-1793435985159-0",
+          "productId": "46875ca4-9a1a-4d07-a356-079849aed449",
+          "productName": "BrightERP Business Suite",
+          "variant": "Standard Edition",
+          "variantPriceDelta": 0,
+          "quantity": 1,
+          "unitPrice": 1200,
+          "amount": 1200
+        },
+        {
+          "id": "line-1793435985159-1",
+          "productId": "e4b25ed0-2f3d-402d-a7df-5d16d56a739b",
+          "productName": "Automated Bank Feeds & Reconcile",
+          "variant": null,
+          "variantPriceDelta": 0,
+          "quantity": 1,
+          "unitPrice": 95,
+          "amount": 95
+        }
+      ],
+      "notes": "Complete turnkey starter bundle for growth-oriented retail and service businesses."
     }
   ],
   "discountRules": [
@@ -789,6 +834,19 @@
         "closedCount": 0
       },
       "timestamp": "2026-10-31T07:45:43.307Z"
+    },
+    {
+      "id": "0becbeb4-e9ec-4f36-a4cd-7099d64d85ac",
+      "createdAt": "2026-10-31T08:39:20.055Z",
+      "action": "RUN_BILLING_ENGINE",
+      "actor": "System Scheduler",
+      "details": {
+        "targetDate": "2026-10-31",
+        "generatedInvoicesCount": 0,
+        "skippedCount": 0,
+        "closedCount": 0
+      },
+      "timestamp": "2026-10-31T08:39:20.055Z"
     }
   ]
 }

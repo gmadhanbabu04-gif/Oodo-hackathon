@@ -114,6 +114,23 @@ export const api = {
   }),
   getUsers: (role) => request(`/users${role ? `?role=${role}` : ''}`),
 
+  // Customers (SubscriptIQ Core CRM)
+  getCustomers: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/customers${query ? `?${query}` : ''}`);
+  },
+  createCustomer: (customer) => request('/customers', {
+    method: 'POST',
+    body: JSON.stringify(customer)
+  }),
+  updateCustomer: (id, updates) => request(`/customers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  }),
+  archiveCustomer: (id) => request(`/customers/${id}`, {
+    method: 'DELETE'
+  }),
+
   // Products
   getProducts: () => request('/products'),
   createProduct: (p) => request('/products', { method: 'POST', body: JSON.stringify(p) }),
@@ -173,5 +190,6 @@ export const api = {
   createTax: (t) => request('/taxes', { method: 'POST', body: JSON.stringify(t) }),
 
   // Analytics
-  getAnalyticsSummary: () => request('/analytics/summary')
+  getAnalyticsSummary: () => request('/analytics/summary'),
+  getIntelligence: () => request('/analytics/intelligence')
 };

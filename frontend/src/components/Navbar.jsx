@@ -27,17 +27,17 @@ export default function Navbar({
         <div className="flex items-center justify-between h-16">
           {/* Logo & Branding */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#714B67] to-[#017E84] flex items-center justify-center shadow-md shadow-purple-900/10 text-white font-bold text-xl">
-              B
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#714B67] to-[#017E84] flex items-center justify-center shadow-md shadow-purple-900/10 text-white font-extrabold text-xl">
+              S
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-lg tracking-tight text-slate-900">Brightloop</span>
+                <span className="font-extrabold text-lg tracking-tight text-slate-900">SubscriptIQ</span>
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-purple-100 text-[#714B67]">
-                  Odoo Ed.
+                  Brightloop Edition
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Subscription & Recurring Billing</p>
+              <p className="text-[11px] text-slate-500 font-medium">Smart Subscriptions. Automated Billing. Clear Revenue.</p>
             </div>
           </div>
 

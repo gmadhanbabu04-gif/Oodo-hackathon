@@ -10,7 +10,9 @@ import {
   Tag,
   Users,
   Compass,
-  DollarSign
+  DollarSign,
+  Sparkles,
+  UserCheck
 } from 'lucide-react';
 
 export default function Sidebar({ currentView, setView, currentUser }) {
@@ -18,6 +20,8 @@ export default function Sidebar({ currentView, setView, currentUser }) {
 
   const adminNav = [
     { id: 'dashboard', label: 'Finance Dashboard', icon: LayoutDashboard },
+    { id: 'actionCenter', label: 'Smart Action Center', icon: Sparkles },
+    { id: 'customers', label: 'Customers & Accounts', icon: UserCheck },
     { id: 'subscriptions', label: 'Subscriptions & Quotes', icon: Repeat },
     { id: 'invoices', label: 'Invoices & Billing', icon: FileText },
     { id: 'payments', label: 'Payments & Records', icon: CreditCard },

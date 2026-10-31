@@ -286,6 +286,141 @@ app.get('/api/users', authenticateToken, (req, res) => {
 });
 
 /* ==========================================================================
+   1B. DEDICATED CUSTOMER MANAGEMENT MODULE (SUBSCRIPTIQ)
+   ========================================================================== */
+
+// List customers with search, filter, sort and pagination
+app.get('/api/customers', authenticateToken, (req, res) => {
+  if (req.user.role === 'customer') {
+    const single = db.getById('users', req.user.id);
+    return res.json({ customers: [single], total: 1, page: 1, limit: 10 });
+  }
+
+  let list = db.getAll('users').filter(u => u.role === 'customer');
+  const { search, status, sortBy, sortOrder, page = 1, limit = 10 } = req.query;
+
+  if (search) {
+    const q = search.toLowerCase();
+    list = list.filter(c => 
+      c.name?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.companyName?.toLowerCase().includes(q) ||
+      c.phone?.includes(q)
+    );
+  }
+
+  if (status && status !== 'all') {
+    list = list.filter(c => (c.accountStatus || 'active') === status);
+  }
+
+  // Sort
+  list.sort((a, b) => {
+    const fieldA = a[sortBy || 'createdAt'] || '';
+    const fieldB = b[sortBy || 'createdAt'] || '';
+    if (sortOrder === 'desc') {
+      return fieldB > fieldA ? 1 : -1;
+    }
+    return fieldA > fieldB ? 1 : -1;
+  });
+
+  const total = list.length;
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+  const startIndex = (pageNum - 1) * limitNum;
+  const paginated = list.slice(startIndex, startIndex + limitNum);
+
+  // Attach subscription and invoice counts for rich insight
+  const subs = db.getAll('subscriptions');
+  const invs = db.getAll('invoices');
+
+  const enriched = paginated.map(c => {
+    const customerSubs = subs.filter(s => s.customerId === c.id);
+    const customerInvs = invs.filter(i => i.customerId === c.id);
+    const totalBalance = customerInvs.reduce((sum, i) => sum + (i.balanceDue || 0), 0);
+
+    return {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      companyName: c.companyName || c.name,
+      phone: c.phone || 'N/A',
+      accountStatus: c.accountStatus || 'active',
+      createdAt: c.createdAt,
+      activeSubscriptionsCount: customerSubs.filter(s => s.status === 'active').length,
+      totalSubscriptionsCount: customerSubs.length,
+      totalOutstandingBalance: Math.round(totalBalance * 100) / 100
+    };
+  });
+
+  res.json({
+    customers: enriched,
+    total,
+    page: pageNum,
+    totalPages: Math.ceil(total / limitNum) || 1
+  });
+});
+
+// Create Customer via Staff/Admin
+app.post('/api/customers', authenticateToken, authorizeRoles('admin', 'staff'), (req, res) => {
+  const { name, email, companyName, phone, accountStatus } = req.body;
+
+  if (!email || !name) {
+    return res.status(400).json({ error: 'Customer name and email are required.' });
+  }
+
+  const existing = db.findOne('users', u => u.email.toLowerCase() === email.toLowerCase());
+  if (existing) {
+    return res.status(400).json({ error: 'A customer account with this email already exists.' });
+  }
+
+  const defaultPasswordHash = bcrypt.hashSync('Client@2026!', 10);
+  const newCustomer = db.create('users', {
+    name,
+    email: email.toLowerCase(),
+    passwordHash: defaultPasswordHash,
+    role: 'customer',
+    companyName: companyName || name,
+    phone: phone || '',
+    accountStatus: accountStatus || 'active'
+  });
+
+  res.status(201).json({
+    message: 'Customer created successfully',
+    customer: newCustomer
+  });
+});
+
+// Update Customer
+app.put('/api/customers/:id', authenticateToken, authorizeRoles('admin', 'staff'), (req, res) => {
+  const { name, email, companyName, phone, accountStatus } = req.body;
+  const customer = db.getById('users', req.params.id);
+
+  if (!customer || customer.role !== 'customer') {
+    return res.status(404).json({ error: 'Customer record not found' });
+  }
+
+  const updated = db.update('users', customer.id, {
+    ...(name ? { name } : {}),
+    ...(email ? { email: email.toLowerCase() } : {}),
+    ...(companyName ? { companyName } : {}),
+    ...(phone !== undefined ? { phone } : {}),
+    ...(accountStatus ? { accountStatus } : {})
+  });
+
+  res.json(updated);
+});
+
+// Archive Customer
+app.delete('/api/customers/:id', authenticateToken, authorizeRoles('admin', 'staff'), (req, res) => {
+  const customer = db.getById('users', req.params.id);
+  if (!customer) return res.status(404).json({ error: 'Customer not found' });
+
+  // Soft-archive to preserve financial and historical invoice records
+  const updated = db.update('users', customer.id, { accountStatus: 'archived' });
+  res.json({ message: 'Customer successfully archived', customer: updated });
+});
+
+/* ==========================================================================
    2. PRODUCTS & VARIANTS
    ========================================================================== */
 
@@ -874,6 +1009,162 @@ app.get('/api/analytics/summary', authenticateToken, authorizeRoles('admin', 'st
     overdueInvoicesCount,
     recentInvoices,
     recentPayments
+  });
+});
+
+/* ==========================================================================
+   9. SUBSCRIPTIQ INTELLIGENCE: RENEWAL RISK & ACTION CENTER
+   ========================================================================== */
+
+app.get('/api/analytics/intelligence', authenticateToken, authorizeRoles('admin', 'staff'), (req, res) => {
+  const subscriptions = db.getAll('subscriptions');
+  const invoices = db.getAll('invoices');
+  const discounts = db.getAll('discountRules');
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  // 1. Renewal Risk Model
+  const renewalRisks = subscriptions
+    .filter(s => s.status === 'active')
+    .map(sub => {
+      let riskScore = 15; // baseline low risk
+      const reasons = [];
+
+      // Check overdue invoices for this customer
+      const customerUnpaid = invoices.filter(i => 
+        i.customerId === sub.customerId && 
+        i.balanceDue > 0 && 
+        i.status !== 'cancelled'
+      );
+      const customerOverdue = customerUnpaid.filter(i => i.dueDate && i.dueDate < todayStr);
+
+      if (customerOverdue.length > 0) {
+        riskScore += 50;
+        reasons.push(`Customer has ${customerOverdue.length} overdue invoice(s) totaling $${customerOverdue.reduce((s, x) => s + x.balanceDue, 0).toFixed(2)}.`);
+      } else if (customerUnpaid.length > 0) {
+        riskScore += 20;
+        reasons.push(`Pending invoice balance of $${customerUnpaid.reduce((s, x) => s + x.balanceDue, 0).toFixed(2)}.`);
+      }
+
+      // Check expiry date proximity
+      if (sub.expiryDate) {
+        const expDate = new Date(sub.expiryDate);
+        const daysUntilExpiry = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+        if (daysUntilExpiry <= 15) {
+          riskScore += 30;
+          reasons.push(`Subscription term expires in ${daysUntilExpiry} days.`);
+        } else if (daysUntilExpiry <= 45) {
+          riskScore += 15;
+          reasons.push(`Renewal window opens within ${daysUntilExpiry} days.`);
+        }
+      }
+
+      let category = 'low';
+      let recommendedAction = 'Maintain standard automated billing schedule.';
+      if (riskScore >= 60) {
+        category = 'high';
+        recommendedAction = 'Urgent: Dispatch account executive to reconcile overdue balance before auto-renewing contract.';
+      } else if (riskScore >= 35) {
+        category = 'medium';
+        recommendedAction = 'Send automated courtesy renewal confirmation & invoice reminder.';
+      }
+
+      return {
+        subscriptionId: sub.id,
+        subscriptionNumber: sub.subscriptionNumber,
+        customerName: sub.customerName,
+        customerEmail: sub.customerEmail,
+        planName: sub.planName,
+        expiryDate: sub.expiryDate,
+        riskScore: Math.min(100, riskScore),
+        category, // 'high' | 'medium' | 'low'
+        reasons,
+        recommendedAction
+      };
+    })
+    .sort((a, b) => b.riskScore - a.riskScore);
+
+  // 2. Smart Action Center Queue
+  const smartActions = [];
+
+  // Action for overdue invoices
+  const overdueInvoices = invoices.filter(i => (i.balanceDue || 0) > 0 && i.dueDate && i.dueDate < todayStr && i.status !== 'cancelled');
+  if (overdueInvoices.length > 0) {
+    const totalOverdueVal = overdueInvoices.reduce((sum, i) => sum + i.balanceDue, 0);
+    smartActions.push({
+      id: 'act-overdue',
+      priority: 'high',
+      category: 'Finance Collection',
+      title: `${overdueInvoices.length} Overdue Accounts Requiring Settlement`,
+      description: `$${totalOverdueVal.toFixed(2)} in receivables past due date. Follow up with customers before service interruption.`,
+      actionLabel: 'Review Overdue Invoices',
+      targetView: 'invoices',
+      affectedCount: overdueInvoices.length
+    });
+  }
+
+  // Action for High Risk renewals
+  const highRiskRenewals = renewalRisks.filter(r => r.category === 'high');
+  if (highRiskRenewals.length > 0) {
+    smartActions.push({
+      id: 'act-renewal-risk',
+      priority: 'high',
+      category: 'Retention Intelligence',
+      title: `${highRiskRenewals.length} High-Risk Renewals Identified`,
+      description: 'Subscriptions expiring soon with outstanding invoices. Immediate account manager intervention recommended.',
+      actionLabel: 'View High-Risk Accounts',
+      targetView: 'subscriptions',
+      affectedCount: highRiskRenewals.length
+    });
+  }
+
+  // Action for pending quotations
+  const pendingQuotes = subscriptions.filter(s => s.status === 'quotation');
+  if (pendingQuotes.length > 0) {
+    smartActions.push({
+      id: 'act-quotes',
+      priority: 'medium',
+      category: 'Sales Pipeline',
+      title: `${pendingQuotes.length} Quotation Proposals Awaiting Acceptance`,
+      description: 'Prospective clients reviewing price offers. Reach out to close deals and transition to Active billing.',
+      actionLabel: 'Inspect Pipeline Quotes',
+      targetView: 'subscriptions',
+      affectedCount: pendingQuotes.length
+    });
+  }
+
+  // 3. 6-Month Revenue Forecast
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentMonthIdx = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  // Calculate baseline monthly recurring
+  const activeSubs = subscriptions.filter(s => s.status === 'active');
+  let baselineMRR = 0;
+  activeSubs.forEach(sub => {
+    const subTotal = (sub.lines || []).reduce((sum, l) => sum + (l.unitPrice * l.quantity), 0);
+    baselineMRR += subTotal;
+  });
+
+  const revenueForecast = [];
+  for (let i = 0; i < 6; i++) {
+    const mIdx = (currentMonthIdx + i) % 12;
+    const yr = currentMonthIdx + i >= 12 ? currentYear + 1 : currentYear;
+    const growthFactor = 1 + (i * 0.045); // projected steady 4.5% month-on-month expansion
+    const projected = Math.round(baselineMRR * growthFactor);
+    revenueForecast.push({
+      month: `${monthNames[mIdx]} ${yr}`,
+      projectedRevenue: projected,
+      mrrBaseline: Math.round(baselineMRR),
+      growthRatePct: Math.round((growthFactor - 1) * 100)
+    });
+  }
+
+  res.json({
+    renewalRisks,
+    smartActions,
+    revenueForecast,
+    calculatedAt: new Date().toISOString()
   });
 });
 

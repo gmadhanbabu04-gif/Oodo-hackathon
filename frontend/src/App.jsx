@@ -10,9 +10,12 @@ import PlanModal from './components/PlanModal';
 import DiscountModal from './components/DiscountModal';
 import StaffModal from './components/StaffModal';
 import AuthModal from './components/AuthModal';
+import CustomerModal from './components/CustomerModal';
 import Toast from './components/Toast';
 
 import DashboardView from './views/DashboardView';
+import CustomersView from './views/CustomersView';
+import SmartActionCenterView from './views/SmartActionCenterView';
 import SubscriptionsView from './views/SubscriptionsView';
 import InvoicesView from './views/InvoicesView';
 import PaymentsView from './views/PaymentsView';
@@ -40,6 +43,7 @@ export default function App() {
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [toast, setToast] = useState({ message: null, type: 'success' });
 
@@ -106,6 +110,21 @@ export default function App() {
               key={refreshKey}
               onOpenBillingModal={() => setBillingModalOpen(true)}
               onSelectInvoice={setSelectedInvoice}
+            />
+          )}
+
+          {currentView === 'actionCenter' && (
+            <SmartActionCenterView
+              key={refreshKey}
+              setView={setCurrentView}
+            />
+          )}
+
+          {currentView === 'customers' && (
+            <CustomersView
+              key={refreshKey}
+              onOpenNewCustomer={() => setCustomerModalOpen(true)}
+              setView={setCurrentView}
             />
           )}
 
@@ -270,6 +289,15 @@ export default function App() {
         onStaffAdded={() => {
           triggerRefresh();
           showToast('New staff member added to team!');
+        }}
+      />
+
+      <CustomerModal
+        isOpen={customerModalOpen}
+        onClose={() => setCustomerModalOpen(false)}
+        onCustomerSaved={() => {
+          triggerRefresh();
+          showToast('New customer account created successfully!');
         }}
       />
 
